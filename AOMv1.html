@@ -204,14 +204,14 @@ function draw(){
         ctx.fillStyle="#333";
         ctx.fillRect(x,y,SIZE,SIZE);
 
-        if(cell.mine===1){
-          ctx.fillStyle="red";
-          ctx.fillText("💣",x+SIZE/2,y+SIZE/2);
-        }
-        else if(cell.mine===2){
-          ctx.fillStyle="cyan";
-          ctx.fillText("💣",x+SIZE/2,y+SIZE/2);
-        }
+       if(cell.mine===1){
+  ctx.fillStyle="white";
+  ctx.fillText("🔴",x+SIZE/2,y+SIZE/2);
+}
+else if(cell.mine===2){
+  ctx.fillStyle="white";
+  ctx.fillText("🔵",x+SIZE/2,y+SIZE/2);
+}
         else if(!cell.empty){
           if(cell.value>0){
             ctx.fillStyle="red";
