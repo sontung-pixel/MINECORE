@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AOM Modes</title>
+<style>
+body{
+  background:#1b1b1b;
+  color:white;
+  text-align:center;
+  font-family:Arial;
+}
+#controls{
+  margin:15px;
+}
+canvas{
+  background:#2a2a2a;
+  cursor:pointer;
+  margin-top:10px;
+}
+select,input,button{
+  margin:5px;
+}
+</style>
+</head>
+<body>
+
+<h2>AOM v1</h2>
+
+<div id="controls">
+<select id="mode">
+<option value="easy">Easy (9×9)</option>
+<option value="medium">Medium (16×16)</option>
+<option value="hard">Hard (16×30)</option>
+<option value="expert">Expert (16×30 99 mines)</option>
+<option value="custom">Custom</option>
+</select>
+
+<input type="number" id="rows" placeholder="Rows" style="width:70px;">
+<input type="number" id="cols" placeholder="Cols" style="width:70px;">
+<input type="number" id="mines" placeholder="Total Mines" style="width:100px;">
+
+<button onclick="startGame()">Start</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+
+let ROWS, COLS, TOTAL_MINES;
+let RED_MINES, BLUE_MINES;
+
+let SIZE = 28;
+let grid = [];
+let firstClick = true;
+let gameOver = false;
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function startGame(){
+
+  const mode = document.getElementById("mode").value;
+
+  if(mode==="easy"){
+    ROWS=9; COLS=9; TOTAL_MINES=20;
+  }
+  else if(mode==="medium"){
+    ROWS=16; COLS=16; TOTAL_MINES=40;
+  }
+  else if(mode==="hard"){
+    ROWS=16; COLS=30; TOTAL_MINES=80;
+  }
+  else if(mode==="expert"){
+    ROWS=16; COLS=30; TOTAL_MINES=99;
+  }
+  else{
+    ROWS=parseInt(document.getElementById("rows").value);
+    COLS=parseInt(document.getElementById("cols").value);
+    TOTAL_MINES=parseInt(document.getElementById("mines").value);
+  }
+
+  RED_MINES=Math.floor(TOTAL_MINES/2);
+  BLUE_MINES=TOTAL_MINES-RED_MINES;
+
+  canvas.width=COLS*SIZE;
+  canvas.height=ROWS*SIZE;
+
+  init();
+}
+
+function init(){
+  grid=[];
+  firstClick=true;
+  gameOver=false;
+
+  for(let r=0;r<ROWS;r++){
+    grid[r]=[];
+    for(let c=0;c<COLS;c++){
+      grid[r][c]={
+        mine:0,
+        revealed:false,
+        flag:0,
+        value:0,
+        empty:false
+      };
+    }
+  }
+
+  draw();
+}
+
+function generateBoard(safeR,safeC){
+
+  let red=0,blue=0;
+
+  while(red<RED_MINES){
+    let r=Math.floor(Math.random()*ROWS);
+    let c=Math.floor(Math.random()*COLS);
+    if(grid[r][c].mine===0){
+      grid[r][c].mine=1;
+      red++;
+    }
+  }
+
+  while(blue<BLUE_MINES){
+    let r=Math.floor(Math.random()*ROWS);
+    let c=Math.floor(Math.random()*COLS);
+    if(grid[r][c].mine===0){
+      grid[r][c].mine=2;
+      blue++;
+    }
+  }
+
+  calculateValues();
+}
+
+function calculateValues(){
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+
+      if(grid[r][c].mine!==0) continue;
+
+      let red=0,blue=0;
+
+      for(let dr=-1;dr<=1;dr++){
+        for(let dc=-1;dc<=1;dc++){
+          if(dr===0 && dc===0) continue;
+          let nr=r+dr,nc=c+dc;
+          if(nr>=0 && nr<ROWS && nc>=0 && nc<COLS){
+            if(grid[nr][nc].mine===1) red++;
+            if(grid[nr][nc].mine===2) blue++;
+          }
+        }
+      }
+
+      if(red===0 && blue===0){
+        grid[r][c].empty=true;
+      }
+      else if(red===blue){
+        grid[r][c].value=0;
+      }
+      else if(red>blue){
+        grid[r][c].value=red;
+      }
+      else{
+        grid[r][c].value=-blue;
+      }
+    }
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.font="15px Arial";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+
+      let cell=grid[r][c];
+      let x=c*SIZE;
+      let y=r*SIZE;
+
+      ctx.strokeStyle="#444";
+      ctx.strokeRect(x,y,SIZE,SIZE);
+
+      if(!cell.revealed){
+        ctx.fillStyle="#555";
+        ctx.fillRect(x,y,SIZE,SIZE);
+
+        if(cell.flag===1){
+          ctx.fillStyle="red";
+          ctx.fillText("⚑",x+SIZE/2,y+SIZE/2);
+        }
+        else if(cell.flag===2){
+          ctx.fillStyle="cyan";
+          ctx.fillText("⚑",x+SIZE/2,y+SIZE/2);
+        }
+      }
+      else{
+        ctx.fillStyle="#333";
+        ctx.fillRect(x,y,SIZE,SIZE);
+
+        if(cell.mine===1){
+          ctx.fillStyle="red";
+          ctx.fillText("💣",x+SIZE/2,y+SIZE/2);
+        }
+        else if(cell.mine===2){
+          ctx.fillStyle="cyan";
+          ctx.fillText("💣",x+SIZE/2,y+SIZE/2);
+        }
+        else if(!cell.empty){
+          if(cell.value>0){
+            ctx.fillStyle="red";
+            ctx.fillText(cell.value,x+SIZE/2,y+SIZE/2);
+          }
+          else if(cell.value<0){
+            ctx.fillStyle="cyan";
+            ctx.fillText(cell.value,x+SIZE/2,y+SIZE/2);
+          }
+          else{
+            ctx.fillStyle="white";
+            ctx.fillText("0",x+SIZE/2,y+SIZE/2);
+          }
+        }
+      }
+    }
+  }
+}
+
+function reveal(r,c){
+
+  if(r<0||r>=ROWS||c<0||c>=COLS) return;
+
+  let cell=grid[r][c];
+
+  if(cell.revealed||cell.flag!==0) return;
+
+  cell.revealed=true;
+
+  if(cell.mine!==0){
+    gameOver=true;
+    revealAll();
+    draw();
+    alert("Game Over");
+    return;
+  }
+
+  if(cell.empty){
+    for(let dr=-1;dr<=1;dr++){
+      for(let dc=-1;dc<=1;dc++){
+        reveal(r+dr,c+dc);
+      }
+    }
+  }
+}
+
+function revealAll(){
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      grid[r][c].revealed=true;
+    }
+  }
+}
+
+canvas.addEventListener("click",function(e){
+
+  if(gameOver) return;
+
+  let rect=canvas.getBoundingClientRect();
+  let c=Math.floor((e.clientX-rect.left)/SIZE);
+  let r=Math.floor((e.clientY-rect.top)/SIZE);
+
+  if(firstClick){
+
+    let safe=false;
+
+    while(!safe){
+      init();
+      generateBoard(r,c);
+
+      if(grid[r][c].empty && grid[r][c].mine===0){
+        safe=true;
+      }
+    }
+
+    firstClick=false;
+  }
+
+  reveal(r,c);
+  draw();
+
+});
+
+canvas.addEventListener("contextmenu",function(e){
+  e.preventDefault();
+
+  if(gameOver) return;
+
+  let rect=canvas.getBoundingClientRect();
+  let c=Math.floor((e.clientX-rect.left)/SIZE);
+  let r=Math.floor((e.clientY-rect.top)/SIZE);
+
+  let cell=grid[r][c];
+
+  if(cell.revealed) return;
+
+  cell.flag=(cell.flag+1)%3;
+
+  draw();
+});
+
+startGame();
+
+</script>
+</body>
+</html>
